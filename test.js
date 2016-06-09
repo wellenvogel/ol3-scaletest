@@ -4,43 +4,23 @@
 
 var container=document.getElementById('mapid');
 var mapframe=document.getElementById('mapframe');
-var projection='EPSG:3857';
-var extent=ol.proj.get(projection).getExtent();
 
-function createTileGrid(scale){
-    var options={};
-    options.extent=extent;
-    options.resolutions=ol.tilegrid.resolutionsFromExtent(
-        extent, ol.DEFAULT_MAX_ZOOM, 256/scale);
-    return new ol.tilegrid.TileGrid(options);
-}
-
-MXYZSource=function(options){
-    ol.source.XYZ.call(this,options);
-    this.scale=1;
-};
-ol.inherits(MXYZSource,ol.source.XYZ);
-MXYZSource.prototype.getTilePixelSize=function(currentZ, pixelRatio, projection){
-  return [256/this.scale,256/this.scale];
-};
-MXYZSource.prototype.setScale=function(scale){
-  this.scale=scale;
-};
-function getSource(scale){
-    return new MXYZSource({
-        url: 'https://api.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw',
-        tileSize: 256/scale,
-        tileGrid: createTileGrid(scale)
-    });
-}
 
 var layer=new ol.layer.Tile({
-    source: getSource(1)
+    source: new ol.source.XYZ({
+        url: 'https://api.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw',
+    })
+});
+var layer2=new ol.layer.Tile({
+    source: new ol.source.XYZ({
+        url: 'http://t1.openseamap.org/seamark//{z}/{x}/{y}.png',
+    })
 });
 var map = new ol.Map({
     target: 'mapid',
     layers: [
-        layer
+        layer,
+        layer2
     ],
     controls: [],
     view: new ol.View({
@@ -65,7 +45,7 @@ noUiSlider.create(range, {
     margin: 0.3, // Handles must be more than '20' apart
     direction: 'ltr', // Put '0' at the bottom of the slider
     orientation: 'horizontal',
-    range: { // Slider can select '0' to '100'
+    range: {
         'min': 0.1,
         'max': 5
     },
@@ -80,7 +60,7 @@ range.noUiSlider.on('update', function( values, handle ) {
     var v=values[handle];
     valueDiv.innerHTML = v;
     scale=parseFloat(v);
-    container.style.transform="scale("+scale+")"
+    container.style.transform="scale("+scale+")";
     map.render();
 
 });
@@ -124,6 +104,11 @@ function formatLonLatsDecimal(coordinate,axis){
     return str;
 };
 
+//when we scale, the original computation within ol will not work correctly
+//as it uses getBoundingClientRectangle of the scaled container
+//and this changes with the scale
+//instead we use here the unscaled outer container
+//afterwards we have to apply the (invers) scale considering the center being the scale origin
 function onClick(ev){
     var evpixel=[ev.originalEvent.clientX,ev.originalEvent.clientY];
     var containerRectangle=mapframe.getBoundingClientRect();
@@ -133,6 +118,7 @@ function onClick(ev){
     var diff=[coord[0]-center[0],coord[1]-center[1]];
     diff=[diff[0]/scale,diff[1]/scale];
     var scaledCoord=[center[0]+diff[0],center[1]+diff[1]];
+
     var clickPos=ol.proj.toLonLat(scaledCoord);
     var lat = formatLonLatsDecimal(clickPos[1], "lat");
     var lon = formatLonLatsDecimal(clickPos[0], "lon");
