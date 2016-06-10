@@ -61,6 +61,9 @@ range.noUiSlider.on('update', function( values, handle ) {
     valueDiv.innerHTML = v;
     scale=parseFloat(v);
     container.style.transform="scale("+scale+")";
+    var fscale=(scale-1.0)*0.5+1;
+    document.getElementById('positionDisplay').style.fontSize=fscale+"rem";
+    document.getElementById('mousePositionDisplay').style.fontSize=fscale+"rem";
     map.render();
 
 });
