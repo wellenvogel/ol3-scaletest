@@ -94,6 +94,7 @@ range.noUiSlider.on('update', function( values, handle ) {
     var v=values[handle];
     valueDiv.innerHTML = v;
     scale=parseFloat(v);
+    container.style.webkitTransform="scale("+scale+")";
     container.style.transform="scale("+scale+")";
     var fscale=(scale-1.0)*0.5+1;
     document.getElementById('positionDisplay').style.fontSize=fscale+"rem";
